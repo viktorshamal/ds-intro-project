@@ -1,6 +1,6 @@
 #%%
 import pandas as pd
-from sklearn import datasets, linear_model
+from sklearn import linear_model
 from sklearn.model_selection import train_test_split
 from matplotlib import pyplot as plt
 
@@ -10,14 +10,12 @@ row_limit = 10000
 time_columns = ['FIRSTBAG', 'LASTBAG', 'BLOCKTIME',
                 'RUNWAYTIME', 'SCHEDULEDBLOCKTIME']
 category_columns = ['RACETRACK', 'AIRLINE',
-                    'GATE', 'ACGRP', 'HANDLER_ID', 'FLIGHT_TYPE', 'DESTINATION']
+                    'GATE', 'ACGRP', 'HANDLER_ID', 'FLIGHT_TYPE', 'DESTINATION', 'WEEKDAY', 'HOUR']
+id_columns = ['ID', 'FLIGHT_NO']
 
 # Load a limited amount
 data = pd.read_csv('flight_arrival.csv', sep=',',
                    parse_dates=time_columns, nrows=row_limit)
-
-# One hot encode
-data = pd.get_dummies(data, columns=category_columns)
 
 # Calculate time differences
 data['FIRSTBAGDELTA'] = (
@@ -26,8 +24,14 @@ data['FIRSTBAGDELTA'] = (
 data['LASTBAGDELTA'] = (
     data['LASTBAG'] - data['BLOCKTIME']).dt.total_seconds()
 
-data = data.drop(time_columns, axis=1)
+# Add weekday and hour
+data['WEEKDAY'] = data['BLOCKTIME'].dt.weekday
+data['HOUR'] = data['BLOCKTIME'].dt.hour
 
+# One hot encode
+data = pd.get_dummies(data, columns=category_columns)
+
+data = data.drop(time_columns + id_columns, axis=1)
 #%%
 # Split into data and target variable.
 X = data.drop('FIRSTBAGDELTA', axis=1)
@@ -47,3 +51,6 @@ plt.xlabel('True Values')
 plt.ylabel('Predictions')
 
 print('Score:', model.score(X_test, y_test))
+
+#%%
+data.to_csv('flight_arrival_cleaned.csv')
